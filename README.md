@@ -31,7 +31,6 @@ ensembled, and non-linear respectively.
 ### Available datasets:
 Please see the description of the datasets in the ``data`` folder.
 - IHDP-100
-- IHDP-1000
 - Jobs
 - TWINS
 
