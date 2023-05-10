@@ -64,6 +64,9 @@ After performing estimation, run:
 ```
 python evaluate.py
 ```
+## Running Notebooks
+- Download the Github as a .zip file
+- Upload it to your Colab environment; After the upload you have to make sure your content includes
 
 
 # using pre-commit hooks
