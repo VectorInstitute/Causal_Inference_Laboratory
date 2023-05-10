@@ -1,10 +1,15 @@
 black
 flake8
 isort
+matplotlib
 mypy
+numpy
+pandas
 pre-commit
 pytest
 pytest-cov
+scikit-learn
+tensorflow
 toml
 types-requests
 types-setuptools
