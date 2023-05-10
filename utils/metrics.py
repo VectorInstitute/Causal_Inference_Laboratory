@@ -232,11 +232,6 @@ def calculate_tau_risk(ite_estimates, w, t, y):
                 
     match_estimates_ite= (2*t -1)*(y - cf_y) 
 
-    print('ITE Estimates', ite_estimates)
-    # count nans in ite_estimates
-    print('Number of nans in ITE estimates', np.sum(np.isnan(ite_estimates)))
-    print('Match Estimates', match_estimates_ite)       
-
     tau_score= np.mean((ite_estimates - match_estimates_ite)**2)
     
     return tau_score
