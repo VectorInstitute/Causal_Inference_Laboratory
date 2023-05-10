@@ -65,8 +65,9 @@ After performing estimation, run:
 python evaluate.py
 ```
 ## Running Notebooks
-- Download the Github as a .zip file
-- Upload it to your Colab environment; After the upload you have to make sure your content includes
+- Open the notebooks folder and click on the desired notebook.
+- At the top of the notebook, click on the ![Open in Colab](https://github.com/VectorInstitute/Causal_Inference_Laboratory/assets/47928320/72fa430a-9e75-4e7d-82fe-080beb58a42d) button.
+- Follow the instructions in the Colab to run the code.
 
 
 # using pre-commit hooks
