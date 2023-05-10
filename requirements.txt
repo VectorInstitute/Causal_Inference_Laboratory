@@ -13,3 +13,4 @@ tensorflow
 toml
 types-requests
 types-setuptools
+xgboost==1.3.3
