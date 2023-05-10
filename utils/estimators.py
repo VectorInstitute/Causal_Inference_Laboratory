@@ -16,8 +16,6 @@ import utils.metrics as losses
 HP_LEARNING_RATE = hp.HParam('learning_rate', hp.Discrete([1e-3, 1e-4, 1e-5, 1e-6, 1e-7]))
 HP_REG_L2 = hp.HParam('reg_l2', hp.Discrete([0.1, 0.01, 0.001, 0.0001, 0.00001]))
 HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32, 64, 128, 256]))
-METRIC_LOSS = 'loss'
-
 
 def predict_by_COM(model, x, keras_model=False):
     """
@@ -583,12 +581,12 @@ def train_and_estimate_Dragonnet(x, t, y_unscaled, x_test, estimator_name, hpara
     )
 
     # split x, yt_train into train and validation
-    x_train, x_val, yt_train, yt_val = train_test_split(
-        x, yt_train, test_size=0.2, random_state=42
-    )
+    # x_train, x_val, yt_train, yt_val = train_test_split(
+    #     x, yt_train, test_size=0.2, random_state=0
+    # )
 
     model.fit(
-        x_train,
+        x,
         yt_train,
         callbacks=sgd_callbacks,
         validation_split=0.2,
@@ -597,10 +595,10 @@ def train_and_estimate_Dragonnet(x, t, y_unscaled, x_test, estimator_name, hpara
         verbose=verbose,
     )
 
-    res = model.evaluate(x_val, yt_val, verbose=0)
+    # res = model.evaluate(x_val, yt_val, verbose=0)
     # print("res: ", res)
     # print(model.metrics_names)
-    tf.summary.scalar(METRIC_LOSS, res[0], step=1)
+    # tf.summary.scalar(METRIC_LOSS, res[0], step=1)
 
     elapsed_time = time.time() - start_time
     text = f"Elapsed_time is: {elapsed_time}"
@@ -623,7 +621,7 @@ def train_and_estimate_Dragonnet(x, t, y_unscaled, x_test, estimator_name, hpara
     return y0_in, y1_in, ate_in, y0_out, y1_out, ate_out
 
 
-def train_and_evaluate(x, t, yf, x_test, estimator_name, tune_hparams=False):
+def train_and_evaluate(x, t, yf, x_test, estimator_name, dataset_name, tune_hparams=False):
     if estimator_name == "OLS1":
         return train_and_estimate_OLS1(x, t, yf, x_test)
     elif estimator_name == "OLS2":
@@ -643,7 +641,33 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, tune_hparams=False):
     elif estimator_name == "Dragonnet":
         # tune hyperparameters, output is not saved
         if tune_hparams:
-            hparam_tune(x, t, yf, x_test, estimator_name)
+            hparam_tune(x, t, yf, x_test, estimator_name, dataset_name)
+        
+        if dataset_name == "IHDP-100":
+            # hparams={
+            #     HP_LEARNING_RATE: 1e-5,
+            #     HP_REG_L2: 1e-5,
+            #     HP_BATCH_SIZE: 16,
+            # }
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 64,
+            }
+        elif dataset_name == "Jobs":
+            hparams={
+                HP_LEARNING_RATE: 0.0001,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 64,
+            }
+        elif dataset_name == "TWINS":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 64,
+            }
+
+        print("hparams: ", hparams)
         
         # no hparam tuning, hard code the hyperparameters
         # values chosen here were based on hparam tuning on jobs dataset
@@ -659,17 +683,38 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, tune_hparams=False):
     elif estimator_name == "TARNet":
         # tune hyperparameters, output is not saved
         if tune_hparams:
-            hparam_tune(x, t, yf, x_test, estimator_name)
+            hparam_tune(x, t, yf, x_test, estimator_name, dataset_name)
 
-        # no hparam tuning, hard code the hyperparameters
-        # values chosen here were based on hparam tuning on jobs dataset
-        return train_and_estimate_Dragonnet(
-            x, t, yf, x_test, estimator_name="TARNet", hparams={
+        if dataset_name == "IHDP-100":
+            # hparams={
+            #     HP_LEARNING_RATE: 1e-5,
+            #     HP_REG_L2: 1e-5,
+            #     HP_BATCH_SIZE: 16,
+            # }
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 64,
+            }
+        elif dataset_name == "Jobs":
+            hparams={
                 HP_LEARNING_RATE: 0.0001,
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 64,
             }
-            
+        elif dataset_name == "TWINS":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 64,
+            }
+
+        print("hparams: ", hparams)
+
+        # no hparam tuning, hard code the hyperparameters
+        # values chosen here were based on hparam tuning on jobs dataset
+        return train_and_estimate_Dragonnet(
+            x, t, yf, x_test, estimator_name="TARNet", hparams=hparams            
         )
     else:
         text = (
@@ -678,7 +723,7 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, tune_hparams=False):
         )
         raise Exception(text)
 
-def hparam_tune(x, t, yf, x_test, estimator_name):
+def hparam_tune(x, t, yf, x_test, estimator_name, dataset_name):
     for k, reg_l2 in enumerate(HP_REG_L2.domain.values):
         for j, batch_size in enumerate(HP_BATCH_SIZE.domain.values):
             for i, learning_rate in enumerate(HP_LEARNING_RATE.domain.values):
@@ -687,11 +732,11 @@ def hparam_tune(x, t, yf, x_test, estimator_name):
                         HP_REG_L2: reg_l2,
                         HP_BATCH_SIZE: batch_size,
                     }
-                logdir = f"logs/{estimator_name}/hparam_tuning/lr_{learning_rate}/reg_l2_{reg_l2}/batch_size_{batch_size}"
+                logdir = f"logs/{dataset_name}/{estimator_name}/hparam_tuning/lr_{learning_rate}/reg_l2_{reg_l2}/batch_size_{batch_size}"
                 with tf.summary.create_file_writer(logdir).as_default():
                     hp.hparams_config(
                             hparams=[HP_LEARNING_RATE, HP_REG_L2, HP_BATCH_SIZE],
-                            metrics=[hp.Metric(METRIC_LOSS, display_name='Validation Loss')],
+                            # metrics=[hp.Metric(METRIC_LOSS, display_name='Validation Loss')],
                         )
                 
                     print(f"Starting training with params: lr: {learning_rate}, reg_l2: {reg_l2}, bs: {batch_size}")

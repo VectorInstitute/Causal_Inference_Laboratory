@@ -151,7 +151,7 @@ def calculate_value_risk(ite_estimates, w, t, y, dataset_name, prop_score=[]):
     decision_policy = np.reshape(decision_policy, (data_size * num_realizations))
 
     indices = t == decision_policy
-    weighted_outcome = y / prop_score
+    weighted_outcome = y / (prop_score + 1e-8)
 
     value_score = np.sum(weighted_outcome[indices]) / data_size
     if dataset_name != "TWINS":
@@ -183,7 +183,7 @@ def calculate_value_dr_risk(ite_estimates, w, t, y, outcome_pred=[], prop_score=
     #     print('Decision Policy', decision_policy.shape)
 
     # Value DR Score
-    value_dr_score = decision_policy * (mu_1 - mu_0 + (2 * t - 1) * (y - mu) / prop_score)
+    value_dr_score = decision_policy * (mu_1 - mu_0 + (2 * t - 1) * (y - mu) / (prop_score + 1e-8))
     if dataset_name != "TWINS":
         value_dr_score = -1*value_dr_score
     
@@ -230,7 +230,12 @@ def calculate_tau_risk(ite_estimates, w, t, y):
         elif curr_t == 0:
             cf_y[idx] = nearest_observed_counterfactual(curr_x, X1, Y1) 
                 
-    match_estimates_ite= (2*t -1)*(y - cf_y)        
+    match_estimates_ite= (2*t -1)*(y - cf_y) 
+
+    print('ITE Estimates', ite_estimates)
+    # count nans in ite_estimates
+    print('Number of nans in ITE estimates', np.sum(np.isnan(ite_estimates)))
+    print('Match Estimates', match_estimates_ite)       
 
     tau_score= np.mean((ite_estimates - match_estimates_ite)**2)
     
@@ -252,7 +257,7 @@ def calculate_tau_iptw_risk(ite_estimates, w, t, y, prop_score= [], min_propensi
     ite_estimates= np.reshape(ite_estimates, (data_size))
 
     #Compute the Tau IPTW Score
-    tau_iptw_score = (ite_estimates - (2 * t - 1) * (y) / prop_score) ** 2
+    tau_iptw_score = (ite_estimates - (2 * t - 1) * (y) / (prop_score + 1e-8)) ** 2
 
     #Propesnity clipping version
     if min_propensity:
@@ -280,7 +285,7 @@ def calculate_tau_dr_risk(ite_estimates, w, t, y, outcome_pred= [], prop_score=[
     mu= mu_0 * (1-t) + mu_1 * (t)
     
     #Tau DR Score
-    tau_dr_score = (ite_estimates - (mu_1 - mu_0 + (2 * t - 1) * (y - mu) / prop_score)) ** 2
+    tau_dr_score = (ite_estimates - (mu_1 - mu_0 + (2 * t - 1) * (y - mu) / (prop_score + 1e-8))) ** 2
 
     #Propesnity clipping version
     if min_propensity:
@@ -358,7 +363,7 @@ def calculate_influence_risk(ite_estimates, w, t, y, outcome_pred=[], prop_prob=
     plug_in_estimate= t_learner_ite - ite_estimates
     A= t - prop_prob[:, 1]
     C= prop_prob[:, 0] * prop_prob[:, 1]
-    B= 2*t*(t- prop_prob[:, 1])*(1/C)
+    B= 2*t*(t- prop_prob[:, 1])*(1/(C+1e-8))
 
     #Influence Score
     influence_score = (1 - B) * (t_learner_ite ** 2) + B * y * plug_in_estimate - A * (plug_in_estimate ** 2) + ite_estimates ** 2
