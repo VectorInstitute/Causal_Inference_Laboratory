@@ -20,7 +20,7 @@ HP_BATCH_SIZE = hp.HParam('batch_size', hp.Discrete([16, 32, 64, 128, 256]))
 def predict_by_COM(model, x, keras_model=False):
     """
     Conditional Outcome Modeling (COM), where t is viewed as one feature of the
-    covariates. This is also called a S-learner.
+    covariates. This is also called a T-learner.
     :param model:
     :param x:
     :return:
@@ -47,7 +47,7 @@ def predict_by_COM(model, x, keras_model=False):
 def predict_by_GCOM(models, x, keras_model=False):
     """
     Grouped Conditional Outcome Modeling (GCOM), where for binary t, each t
-    corresponds to one model. This is also called a T-learner.
+    corresponds to one model. This is also called a S-learner.
     covariates
     :param models: two models for t=0 and t=1 separately
     :param x:
