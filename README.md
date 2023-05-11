@@ -17,8 +17,8 @@ python estimate.py
 The results of all estimators will be stored in folder ``estimation_results``.
 
 ### Available estimators:
-- COM/T-Learner: OLS1, RF1, NN1;
-- GCOM/S-Learner: OLS2, RF2, NN2;
+- COM/S-Learner: OLS1, RF1, NN1;
+- GCOM/T-Learner: OLS2, RF2, NN2;
 - Inverse Probability Weighting (IPW);
 - Double Machine Learning/R-Learner;
 - TARNet
