@@ -248,7 +248,9 @@ def load_TWINS_out_of_sample(
     x_len = data["x"].shape[0]
     x_test = data["x"].reshape((x_len, -1, 1))
     t_test = data["t"].reshape((-1, 1))
-    return x_test, t_test
+    yf_test = data["yf"].reshape((-1, 1))
+
+    return x_test, t_test, yf_test
 
 def load_IHDP_ground_truth(
     datasets_folder="./data", dataset_name="IHDP-100", details=False
