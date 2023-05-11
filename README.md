@@ -17,8 +17,8 @@ python estimate.py
 The results of all estimators will be stored in folder ``estimation_results``.
 
 ### Available estimators:
-- COM/T-Learner: OLS1, RF1, NN1;
-- GCOM/S-Learner: OLS2, RF2, NN2;
+- COM/S-Learner: OLS1, RF1, NN1;
+- GCOM/T-Learner: OLS2, RF2, NN2;
 - Inverse Probability Weighting (IPW);
 - Double Machine Learning/R-Learner;
 - TARNet
@@ -68,6 +68,8 @@ python evaluate.py
 - Open the notebooks folder and click on the desired notebook.
 - At the top of the notebook, click on the ![Open in Colab](https://github.com/VectorInstitute/Causal_Inference_Laboratory/assets/47928320/72fa430a-9e75-4e7d-82fe-080beb58a42d) button.
 - Follow the instructions in the Colab to run the code.
+
+For the `Demo_End2End_Causal_Estimation_Pipeline.ipynb` notebook, to ensure that you've initialized it correctly, check the following:
 - After running the first code block in Colab, your file directory should look like this:
 
 ![image](https://github.com/VectorInstitute/Causal_Inference_Laboratory/assets/47928320/c3fc6d26-369d-4454-8990-3b452b49d86c)
