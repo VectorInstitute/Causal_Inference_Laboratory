@@ -456,6 +456,19 @@ def calculate_influence_risk(ite_estimates, w, t, y, outcome_pred=[], prop_prob=
     #TODO: Defining (t0, t1) assumes the treatment is binary  
     t0= t*0
     t1= t*0 + 1
+
+    # print inputs
+    # print outcome_pred
+    # print prop_prob
+    # print min_propensity
+
+    print("ite_estimates", ite_estimates.shape)
+    print("w", w.shape)
+    print("t", t.shape)
+    print("y", y.shape)
+    print("outcome_pred", outcome_pred)
+    print("prop_prob", prop_prob)
+    print("min_propensity", min_propensity)
     
     data_size= w.shape[0]
     t= np.reshape(t, (data_size))

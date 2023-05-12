@@ -207,7 +207,9 @@ def load_IHDP_out_of_sample(
         details=details,
     )
     x_test = data["x"]
-    return x_test
+    t_test = data["t"]
+    yf_test = data["yf"]
+    return x_test, t_test, yf_test
 
 
 def load_Jobs_out_of_sample(
