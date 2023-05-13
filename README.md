@@ -56,6 +56,7 @@ This uses AutoML to estimate the best model for each nuisance model. The results
 - Propensity
 
 ### Available datasets:
+- IHDP-100
 - Jobs
 - TWINS
 
