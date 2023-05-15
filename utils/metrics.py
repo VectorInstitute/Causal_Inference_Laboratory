@@ -25,7 +25,7 @@ def calculate_mae_ATEs(y0, y1, mu0, mu1):
     :param y1: estimation of y1 of multiple realizations
     :param mu0: ground-truth of y0 of multiple realizations
     :param mu1: ground-truth of y1 of multiple realizations
-    :return: ndarray of PEHEs of all realizations
+    :return: ndarray of MAE of ATE of all realizations
     """
     assert y0.shape == mu0.shape, f"shape of y0 and mu0: {y0.shape}{mu0.shape}"
     assert y1.shape == mu1.shape, f"shape of y1 and mu1: {y1.shape}{mu1.shape}"
@@ -49,7 +49,7 @@ def calculate_mae_ATEs_scalar(y0, y1, ate):
     :param y0: estimation of y0 of multiple realizations
     :param y1: estimation of y1 of multiple realizations
     :param ate: ground-truth ate of multiple realizations
-    :return: ndarray of PEHEs of all realizations
+    :return: ndarray of MAE of ATE of all realizations
     """
     assert y0.shape == y1.shape, f"shape of y0 and y1: {y0.shape}{y1.shape}"
     num_realizations = y0.shape[-1]
