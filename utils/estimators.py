@@ -510,41 +510,42 @@ def train_and_estimate_Dragonnet(x, t, y_unscaled, x_test, estimator_name, hpara
     yt_train = np.concatenate([y, t], 1)
     start_time = time.time()
 
-    # # from original dragonnet code (very wierd to train twice as the second
-    # # part will overwrite the first part)
-    # model.compile(
-    #     optimizer=keras.optimizers.Adam(learning_rate=1e-3),
-    #     loss=loss,
-    #     metrics=metrics,
-    # )
-    #
-    # verbose = 0
-    # adam_callbacks = [
-    #     keras.callbacks.TerminateOnNaN(),
-    #     keras.callbacks.EarlyStopping(
-    #         monitor="val_loss", patience=2, min_delta=0.0
-    #     ),
-    #     keras.callbacks.ReduceLROnPlateau(
-    #         monitor="loss",
-    #         factor=0.5,
-    #         patience=5,
-    #         verbose=verbose,
-    #         mode="auto",
-    #         min_delta=1e-8,
-    #         cooldown=0,
-    #         min_lr=0,
-    #     ),
-    # ]
-    #
-    # model.fit(
-    #     x,
-    #     yt_train,
-    #     callbacks=adam_callbacks,
-    #     validation_split=0.2,
-    #     epochs=100,
-    #     batch_size=64,
-    #     verbose=verbose,
-    # )
+
+    # from original code, training in two phasesL use a high learning rate first, 
+    # then use a low learning rate
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+        loss=loss,
+        metrics=metrics,
+    )
+    
+    verbose = 0
+    adam_callbacks = [
+        keras.callbacks.TerminateOnNaN(),
+        keras.callbacks.EarlyStopping(
+            monitor="val_loss", patience=2, min_delta=0.0
+        ),
+        keras.callbacks.ReduceLROnPlateau(
+            monitor="loss",
+            factor=0.5,
+            patience=5,
+            verbose=verbose,
+            mode="auto",
+            min_delta=1e-8,
+            cooldown=0,
+            min_lr=0,
+        ),
+    ]
+    
+    model.fit(
+        x,
+        yt_train,
+        callbacks=adam_callbacks,
+        validation_split=0.2,
+        epochs=100,
+        batch_size=64,
+        verbose=verbose,
+    )
 
     verbose = 0
     sgd_callbacks = [

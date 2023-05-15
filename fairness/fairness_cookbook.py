@@ -39,7 +39,7 @@ def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
     if yf.shape[-1] == 1:
         yf = np.squeeze(yf, axis=-1)
 
-    estimator_results = models.train_and_evaluate(x=X[0:num_train], t=t[0:num_train], yf=yf[0:num_train], x_test=X[num_train:], estimator_name=estimator_name)
+    estimator_results = models.train_and_evaluate(x=X[0:num_train], t=t[0:num_train], yf=yf[0:num_train], x_test=X[num_train:], estimator_name=estimator_name, dataset_name="fairness_dataset")
     y0_in = estimator_results[0]
     y1_in = estimator_results[1]
     y0_out = estimator_results[3]
@@ -50,6 +50,9 @@ def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
 
 def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
     # Estimates tau(X). tau(X) = E[Y(1) - Y(0) | X = x].
+
+    Y, y_scaler = normalize_data(Y)
+    X, _ = normalize_data(X)
 
     test_ratio = 0.1
     num_samples = X.shape[0]
@@ -70,13 +73,15 @@ def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
     dataset_name = "fairness_dataset"
     evaluate(X[0:num_train], W[0:num_train], Y[0:num_train], np.arange(num_train), estimator_name, y0_in, y1_in, dataset_name)
 
-
     if len(y0_in.shape) == 1:
         y0_in = np.expand_dims(y0_in, axis=1)
         y1_in = np.expand_dims(y1_in, axis=1)
         y0_out = np.expand_dims(y0_out, axis=1)
         y1_out = np.expand_dims(y1_out, axis=1)
-    
+    y0_in = y_scaler.inverse_transform(y0_in)
+    y1_in = y_scaler.inverse_transform(y1_in)
+    y0_out = y_scaler.inverse_transform(y0_out)
+    y1_out = y_scaler.inverse_transform(y1_out)    
     y0 = np.concatenate((y0_in, y0_out), axis=0)
     y1 = np.concatenate((y1_in, y1_out), axis=0)
 
@@ -91,7 +96,7 @@ def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
 def normalize_data(data):
     data_scaler = StandardScaler().fit(data)
     data_scaled = data_scaler.transform(data)
-    return data_scaled
+    return data_scaled, data_scaler
 
 def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
     metrics = {}
@@ -102,8 +107,9 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
     id0 = idx[(data[:, X][idx] == [x0])[:, 0]]
     id1 = idx[(data[:, X][idx] == [x1])[:, 0]]
 
-    norm_cols = Y + Z + W
-    data[:, norm_cols] = normalize_data(data[:, norm_cols])
+    # norm_cols = Y + Z + W
+    # data[:, norm_cols] = normalize_data(data[:, norm_cols])
+    
     y = data[:, Y]
     x = data[:, X]
     z = data[:, Z]
