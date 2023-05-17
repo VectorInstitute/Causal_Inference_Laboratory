@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from flaml import AutoML
-from sklearn.model_selection import train_test_split
-import sys
-
 
 
 import utils.estimators as models
@@ -14,11 +11,11 @@ from fairness.evaluate_fairness import evaluate
 def automl_estimator_wrapper(X, Y, W, num_train, estimator_name=""):
     automl = AutoML()
     automl_settings = {
-            "time_budget": 5,  # in seconds
+            "time_budget": 30,  # in seconds
             "task": 'regression',
             "eval_method": 'cv',
             "n_splits": 3,
-            "verbose": 3
+            "verbose": 0
         }
     X_train = np.concatenate((X[0:num_train], W[0:num_train]), axis=1)
     y_train = Y[0:num_train]
@@ -51,18 +48,9 @@ def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
 def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
     # Estimates tau(X). tau(X) = E[Y(1) - Y(0) | X = x].
 
-    Y, y_scaler = normalize_data(Y)
-    X, _ = normalize_data(X)
-
     test_ratio = 0.1
     num_samples = X.shape[0]
     num_train = int(num_samples * (1 - test_ratio))
-
-    #TODO
-    # indices_all = np.arange(x_all.shape[0])
-    # x_train, x_eval, t_train, t_eval, yf_train, yf_eval, inidices_train, indices_eval = train_test_split(
-    #     x_all, t_all, yf_all, indices_all, test_size=0.2, random_state=seed
-    #     )
 
     if estimator_name == "AutoML":
         y0_in, y1_in, y0_out, y1_out = automl_estimator_wrapper(X, Y, W, num_train)
@@ -77,20 +65,16 @@ def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
         y0_in = np.expand_dims(y0_in, axis=1)
         y1_in = np.expand_dims(y1_in, axis=1)
         y0_out = np.expand_dims(y0_out, axis=1)
-        y1_out = np.expand_dims(y1_out, axis=1)
-    y0_in = y_scaler.inverse_transform(y0_in)
-    y1_in = y_scaler.inverse_transform(y1_in)
-    y0_out = y_scaler.inverse_transform(y0_out)
-    y1_out = y_scaler.inverse_transform(y1_out)    
+        y1_out = np.expand_dims(y1_out, axis=1) 
     y0 = np.concatenate((y0_in, y0_out), axis=0)
     y1 = np.concatenate((y1_in, y1_out), axis=0)
-
     res = (y1 - y0)
 
     y_pred = np.zeros(Y.shape)
     y_pred[id0] = y0[id0]
     y_pred[id1] = y1[id1]
-    err = np.mean((Y - y_pred)[num_train:] ** 2)
+    err = np.mean((Y - y_pred)[num_train:] ** 2) ** 0.5
+
     return res, err
 
 def normalize_data(data):
@@ -100,6 +84,7 @@ def normalize_data(data):
 
 def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
     metrics = {}
+    np.random.shuffle(data)                                                                                                                                                                         
 
     # TODO: Change sampling method.
     num_obs = len(data)
@@ -107,8 +92,7 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
     id0 = idx[(data[:, X][idx] == [x0])[:, 0]]
     id1 = idx[(data[:, X][idx] == [x1])[:, 0]]
 
-    # norm_cols = Y + Z + W
-    # data[:, norm_cols] = normalize_data(data[:, norm_cols])
+    data[:, Z + W], _ = normalize_data(data[:, Z + W])
     
     y = data[:, Y]
     x = data[:, X]
@@ -125,11 +109,10 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
         ctfse = 0
         crf_te = np.array([tv] * len(idx))
     else:
-        crf_te, err = estimator_wrapper(X = z, 
+        crf_te, _ = estimator_wrapper(X = z, 
                        Y = y, 
                        W = x,
                        estimator_name=estimator_name, id0=id0, id1=id1)
-        print("Estimator error for E[Y(x1) - Y(x0) | C = z] = ", err)
         te = msd_one(crf_te, idx)
         ett = msd_one(crf_te, id0)
         ctfse = msd_three(crf_te, id0, -y, id1, y, id0)
@@ -150,11 +133,10 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
     else:
         ZW = Z + W
         zw = data[:, ZW]
-        crf_med, err = estimator_wrapper(X = zw, 
+        crf_med, _ = estimator_wrapper(X = zw, 
                         Y = y, 
                         W = x,
                         estimator_name=estimator_name, id0=id0, id1=id1)
-        print("Estimator error for E[Y(x1) - Y(x0) | C = zw] = ", err)
         nde = msd_one(crf_med, idx)
         ctfde = msd_one(crf_med, id0)
         nie = msd_two(crf_med, idx, -crf_te, idx)

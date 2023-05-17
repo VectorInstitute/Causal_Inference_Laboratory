@@ -98,11 +98,9 @@ def evaluate(x_all, t_all, yf_all, indices_all, estimator_name, y0_in, y1_in, da
             new_y[i * data_size : (i + 1) * data_size] = y[key][:, i]
         y[key] = new_y
 
-
         w[key]= np.reshape(w[key], (data_size * num_realizations, -1)) # TODO: fix for mutliple realizations
         t[key]= np.reshape(t[key], (data_size * num_realizations))
         y[key]= np.reshape(y[key], (data_size * num_realizations))
-
 
     model_sel_res={}
     for key in ['t_learner_0', 't_learner_1', 's_learner', 'dml', 'prop']:
@@ -110,13 +108,11 @@ def evaluate(x_all, t_all, yf_all, indices_all, estimator_name, y0_in, y1_in, da
         model_sel_res[key]['score']= -sys.maxsize - 1
         model_sel_res[key]['model']= -sys.maxsize - 1
 
-
     sys.stderr.flush()
     for model_case in tqdm(['t_learner_0', 't_learner_1', 's_learner', 'dml', 'prop'], file=sys.stdout):
-    # for model_case in  ['s_learner']:
         if model_case == 'prop':
             automl_settings = {
-                "time_budget": 2,  # in seconds
+                "time_budget": 30,  # in seconds
                 "task": 'classification',
                 "eval_method": 'cv',
                 "n_splits": 3,
@@ -125,7 +121,7 @@ def evaluate(x_all, t_all, yf_all, indices_all, estimator_name, y0_in, y1_in, da
             nuisance_list= prop_models
         else:
             automl_settings = {
-                "time_budget": 2,  # in seconds
+                "time_budget": 30,  # in seconds
                 "task": 'regression',
                 "eval_method": 'cv',
                 "n_splits": 3,
