@@ -667,17 +667,33 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, dataset_name, tune_hpar
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 64,
             }
+        elif dataset_name == "census":
+            hparams={
+                HP_LEARNING_RATE: 1e-12,
+                HP_REG_L2: 0.001,
+                HP_BATCH_SIZE: 16,
+            } 
+        elif dataset_name == "compas":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.001,
+                HP_BATCH_SIZE: 16,
+            } 
+        elif dataset_name == "berkeley":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 16,
+            } 
+
 
         print("hparams: ", hparams)
         
         # no hparam tuning, hard code the hyperparameters
         # values chosen here were based on hparam tuning on jobs dataset
         y0_in, y1_in, ate_in, y0_out, y1_out, ate_out = train_and_estimate_Dragonnet(
-                    x, t, yf, x_test, estimator_name="Dragonnet", hparams={
-                        HP_LEARNING_RATE: 0.001,
-                        HP_REG_L2: 0.01,
-                        HP_BATCH_SIZE: 16,
-                    }
+                    x, t, yf, x_test, estimator_name="Dragonnet", hparams=hparams
+                    
                 )
 
         return y0_in, y1_in, ate_in, y0_out, y1_out, ate_out
@@ -709,6 +725,24 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, dataset_name, tune_hpar
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 64,
             }
+        elif dataset_name == "census":
+            hparams={
+                HP_LEARNING_RATE: 1e-12,
+                HP_REG_L2: 0.001,
+                HP_BATCH_SIZE: 16,
+            }         
+        elif dataset_name == "compas":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.001,
+                HP_BATCH_SIZE: 16,
+            } 
+        elif dataset_name == "berkeley":
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 16,
+            } 
 
         print("hparams: ", hparams)
 

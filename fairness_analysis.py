@@ -79,9 +79,9 @@ def plot_confidence_intervals(metrics, z=1.96, plot_name="fairness_metrics", plo
 if __name__ == "__main__":
 
     # data_name = "200obs"
-    # data_name = "berkeley"
+    data_name = "berkeley"
     # data_name = "compas"
-    data_name = "census"
+    # data_name = "census"
 
     # if data_name == "census":
     #     data_addr = "data/CFA/gov_census.csv"
@@ -132,8 +132,8 @@ if __name__ == "__main__":
         x0 = 0
         x1 = 1 
 
-    estimator_name = "RF2"
-    num_boot = 100
+    estimator_name = "Dragonnet"
+    num_boot = 2
     num_rows_2_sample = 200
 
     all_metrics = np.zeros((num_boot, 4))
@@ -141,16 +141,11 @@ if __name__ == "__main__":
         print("-" * 15 + " Run " + str(i) + " " + "-" * 15)
         data_ck = data[np.random.choice(data.shape[0], num_rows_2_sample, replace=False)]
         metrics = fairness_cookbook(data_ck, X = X, Z = Z, Y = Y, W = W,
-                                    x0 = x0, x1 = x1, estimator_name = estimator_name)
+                                    x0 = x0, x1 = x1, estimator_name = estimator_name, dataset_name=data_name)
         all_metrics[i][0] = metrics["tv"]
         all_metrics[i][1] = metrics["ctfde"]
         all_metrics[i][2] = metrics["ctfie"]
-        all_metrics[i][3] = metrics["ctfse"]
-        print(metrics["tv"])
-        print(metrics["ctfde"])
-        print(metrics["ctfie"])
-        print(metrics["ctfse"])
-        
+        all_metrics[i][3] = metrics["ctfse"]        
         print("-" * 37)
 
         

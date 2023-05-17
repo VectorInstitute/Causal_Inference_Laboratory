@@ -27,7 +27,7 @@ def automl_estimator_wrapper(X, Y, W, num_train, estimator_name=""):
 
     return y0_in, y1_in, y0_out, y1_out
 
-def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
+def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="RF1", dataset_name="census"):
 
     t = W
     if t.shape[-1] == 1:
@@ -36,7 +36,7 @@ def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
     if yf.shape[-1] == 1:
         yf = np.squeeze(yf, axis=-1)
 
-    estimator_results = models.train_and_evaluate(x=X[0:num_train], t=t[0:num_train], yf=yf[0:num_train], x_test=X[num_train:], estimator_name=estimator_name, dataset_name="fairness_dataset")
+    estimator_results = models.train_and_evaluate(x=X[0:num_train], t=t[0:num_train], yf=yf[0:num_train], x_test=X[num_train:], estimator_name=estimator_name, dataset_name=dataset_name)
     y0_in = estimator_results[0]
     y1_in = estimator_results[1]
     y0_out = estimator_results[3]
@@ -45,7 +45,7 @@ def wen_estimator_wrapper(X, Y, W, num_train, estimator_name="OLS1"):
     return y0_in, y1_in, y0_out, y1_out
 
 
-def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
+def estimator_wrapper(X, Y, W, estimator_name, id0, id1, dataset_name):
     # Estimates tau(X). tau(X) = E[Y(1) - Y(0) | X = x].
 
     test_ratio = 0.1
@@ -55,11 +55,10 @@ def estimator_wrapper(X, Y, W, estimator_name, id0, id1):
     if estimator_name == "AutoML":
         y0_in, y1_in, y0_out, y1_out = automl_estimator_wrapper(X, Y, W, num_train)
     else:
-        y0_in, y1_in, y0_out, y1_out = wen_estimator_wrapper(X, Y, W, num_train, estimator_name)
+        y0_in, y1_in, y0_out, y1_out = wen_estimator_wrapper(X, Y, W, num_train, estimator_name, dataset_name)
 
     ##TODO train test eval 2- why does it have to be the same seed
-    dataset_name = "fairness_dataset"
-    evaluate(X[0:num_train], W[0:num_train], Y[0:num_train], np.arange(num_train), estimator_name, y0_in, y1_in, dataset_name)
+    # evaluate(X[0:num_train], W[0:num_train], Y[0:num_train], np.arange(num_train), estimator_name, y0_in, y1_in, dataset_name)
 
     if len(y0_in.shape) == 1:
         y0_in = np.expand_dims(y0_in, axis=1)
@@ -82,7 +81,7 @@ def normalize_data(data):
     data_scaled = data_scaler.transform(data)
     return data_scaled, data_scaler
 
-def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
+def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2", dataset_name="census"):
     metrics = {}
     np.random.shuffle(data)                                                                                                                                                                         
 
@@ -112,7 +111,7 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
         crf_te, _ = estimator_wrapper(X = z, 
                        Y = y, 
                        W = x,
-                       estimator_name=estimator_name, id0=id0, id1=id1)
+                       estimator_name=estimator_name, id0=id0, id1=id1, dataset_name=dataset_name)
         te = msd_one(crf_te, idx)
         ett = msd_one(crf_te, id0)
         ctfse = msd_three(crf_te, id0, -y, id1, y, id0)
@@ -136,7 +135,7 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2"):
         crf_med, _ = estimator_wrapper(X = zw, 
                         Y = y, 
                         W = x,
-                        estimator_name=estimator_name, id0=id0, id1=id1)
+                        estimator_name=estimator_name, id0=id0, id1=id1, dataset_name=dataset_name)
         nde = msd_one(crf_med, idx)
         ctfde = msd_one(crf_med, id0)
         nie = msd_two(crf_med, idx, -crf_te, idx)
