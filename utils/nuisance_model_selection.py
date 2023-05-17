@@ -163,24 +163,30 @@ if "IHDP" in dataset_name:
     x_all, t_all, yf_all = helper.load_IHDP_observational(
         datasets_folder, dataset_name, details=False
     )
-    x_test_all = helper.load_IHDP_out_of_sample(
+    x_test_all, t_test_all, yf_test_all = helper.load_IHDP_out_of_sample(
         datasets_folder, dataset_name, details=False
     )
 elif dataset_name == "Jobs":
     x_all, t_all, yf_all = helper.load_Jobs_observational(
         datasets_folder, dataset_name, details=False
     )
-    x_test_all = helper.load_Jobs_out_of_sample(
+    x_test_all, t_test_all, yf_test_all = helper.load_Jobs_out_of_sample(
         datasets_folder, dataset_name, details=False
     )
 elif dataset_name == "TWINS":
     x_all, t_all, yf_all = helper.load_TWINS_observational(
         datasets_folder, dataset_name, details=False
     )
-    x_test_all, t_test_all = helper.load_TWINS_out_of_sample(
+    x_test_all, t_test_all, yf_test_all = helper.load_TWINS_out_of_sample(
         datasets_folder, dataset_name, details=False
     )
-
+elif dataset_name == "berkeley":
+    data = helper.load_data_fa(datasets_folder + "//CFA//berkeley_numeric.csv")
+    yf_all = data[:, 0].reshape(-1, 1)
+    t_all = data[:, 1].reshape(-1, 1)
+    x_all = data[:, 2].reshape(-1, 1, 1)
+    print(x_all.shape, t_all.shape, yf_all.shape)
+# quit()
 
 # dataset_samples= sample_dataset(dataset_name, dataset_obj, seed=seed, case='eval')
 # eval_w, eval_t, eval_y, ate, ite= dataset_samples['w'], dataset_samples['t'], dataset_samples['y'], dataset_samples['ate'], dataset_samples['ite']

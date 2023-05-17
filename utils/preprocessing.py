@@ -8,6 +8,12 @@ sys_config = {
     "results_folder": "./estimation_results",
 }
 
+def load_data_fa(data_addr):
+    df = pd.read_csv(data_addr)
+    df.drop(columns=df.columns[0], axis=1, inplace=True)
+    data = df.to_numpy()
+    return data
+
 def load_IHDP(
     datasets_folder="./data",
     dataset_name="IHDP-100",
