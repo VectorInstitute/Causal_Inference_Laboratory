@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from flaml import AutoML
@@ -6,7 +5,6 @@ from flaml import AutoML
 
 import utils.estimators as models
 from fairness.fc_helpers import msd_one, msd_two, msd_three
-from fairness.evaluate_fairness import evaluate
 
 def automl_estimator_wrapper(X, Y, W, num_train, estimator_name=""):
     automl = AutoML()
@@ -56,9 +54,6 @@ def estimator_wrapper(X, Y, W, estimator_name, id0, id1, dataset_name):
         y0_in, y1_in, y0_out, y1_out = automl_estimator_wrapper(X, Y, W, num_train)
     else:
         y0_in, y1_in, y0_out, y1_out = wen_estimator_wrapper(X, Y, W, num_train, estimator_name, dataset_name)
-
-    ##TODO train test eval 2- why does it have to be the same seed
-    # evaluate(X[0:num_train], W[0:num_train], Y[0:num_train], np.arange(num_train), estimator_name, y0_in, y1_in, dataset_name)
 
     if len(y0_in.shape) == 1:
         y0_in = np.expand_dims(y0_in, axis=1)
