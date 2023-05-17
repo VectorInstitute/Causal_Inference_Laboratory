@@ -14,6 +14,23 @@ def load_data_fa(data_addr):
     data = df.to_numpy()
     return data
 
+def load_berkeley(
+        datasets_folder=".//data//CFA",
+        dataset_name="berkeley",
+        split="train",
+        details=False
+    ):
+    dataset_filename = f"{dataset_name}_numeric.csv"
+    dataset_path = os.path.join(datasets_folder, dataset_filename)
+    df = pd.read_csv(dataset_path)
+    df.drop(columns=df.columns[0], axis=1, inplace=True)
+    data = df.to_numpy()
+    yf_all = data[:, 0].reshape(-1, 1)
+    t_all = data[:, 1].reshape(-1, 1)
+    x_all = data[:, 2].reshape(-1, 1, 1)
+
+    return x_all, t_all, yf_all
+
 def load_IHDP(
     datasets_folder="./data",
     dataset_name="IHDP-100",
