@@ -188,13 +188,6 @@ elif dataset_name == "berkeley":
     x_test_all, t_test_all, yf_test_all = helper.load_berkeley_out_of_sample(
         datasets_folder_CFA, dataset_name, details=False
     )
-    # print shapes
-    print("x_all.shape", x_all.shape)
-    print("t_all.shape", t_all.shape)
-    print("yf_all.shape", yf_all.shape)
-    print("x_test_all.shape", x_test_all.shape)
-    print("t_test_all.shape", t_test_all.shape)
-    print("yf_test_all.shape", yf_test_all.shape)
 
 # dataset_samples= sample_dataset(dataset_name, dataset_obj, seed=seed, case='eval')
 # eval_w, eval_t, eval_y, ate, ite= dataset_samples['w'], dataset_samples['t'], dataset_samples['y'], dataset_samples['ate'], dataset_samples['ite']
