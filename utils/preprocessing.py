@@ -15,21 +15,35 @@ def load_data_fa(data_addr):
     return data
 
 def load_berkeley(
-        datasets_folder=".//data//CFA",
+        datasets_folder="./data//CFA",
         dataset_name="berkeley",
         split="train",
         details=False
     ):
-    dataset_filename = f"{dataset_name}_numeric.csv"
-    dataset_path = os.path.join(datasets_folder, dataset_filename)
-    df = pd.read_csv(dataset_path)
-    df.drop(columns=df.columns[0], axis=1, inplace=True)
-    data = df.to_numpy()
-    yf_all = data[:, 0].reshape(-1, 1)
-    t_all = data[:, 1].reshape(-1, 1)
-    x_all = data[:, 2].reshape(-1, 1, 1)
+    """
+    Load the Berkeley dataset with split training and test sets
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param split: train or test split
+    :param details: boolean value for whether showing the details
+    :return:
+    """
+    dataset_filename = f"{dataset_name}.{split}.npz"
+    data = None
+    try:
+        data = np.load(os.path.join(datasets_folder, dataset_filename))
+        if details:
+            print(f'{"":-^79}')
+            print(f"The details of the {split} split of {dataset_name} dataset:")
+            for k in data.keys():
+                print(k, data[k].shape, data[k].dtype)
+            print(f'{"":-^79}')
+    except FileNotFoundError:
+        print(f"Cannot find the file of the {split} split of {dataset_name}.")
+    except Exception:
+        print("Loading dataset failed.")
+    return data
 
-    return x_all, t_all, yf_all
 
 def load_IHDP(
     datasets_folder="./data",
@@ -145,6 +159,30 @@ def load_TWINS(
         print("Loading dataset failed.")
     return data
 
+def load_berkeley_observational(
+    datasets_folder="./data/CFA", dataset_name="berkeley", details=False
+):
+    """
+    Load observational data (x, t, yf), i.e., train split of multiple
+    realizations (100 and 1000) of the IHDP dataset
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param split: train or test split
+    :param details: boolean value for whether to show the details or not
+    :return:
+    """
+    data = load_berkeley(
+        datasets_folder=datasets_folder,
+        dataset_name=dataset_name,
+        split="train",
+        details=details,
+    )
+    x = data["x"]
+    t = data["t"]
+    yf = data["yf"]
+    return x, t, yf
+    
+
 def load_IHDP_observational(
     datasets_folder="./data", dataset_name="IHDP-100", details=False
 ):
@@ -211,6 +249,27 @@ def load_TWINS_observational(
     t = data["t"].reshape((-1, 1))
     yf = data["yf"].reshape((-1, 1))
     return x, t, yf
+
+def load_berkeley_out_of_sample(
+    datasets_folder="./data/CFA", dataset_name="berkeley", details=False
+):
+    """
+    Load out-of-sample (x) data, i.e., test split of the berkeley dataset
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param details: boolean value for whether to show the details or not
+    :return:
+    """
+    data = load_berkeley(
+        datasets_folder=datasets_folder,
+        dataset_name=dataset_name,
+        split="test",
+        details=details,
+    )
+    x_test = data["x"]
+    t_test = data["t"]
+    yf_test = data["yf"]
+    return x_test, t_test, yf_test
 
 def load_IHDP_out_of_sample(
     datasets_folder="./data", dataset_name="IHDP-100", details=False
