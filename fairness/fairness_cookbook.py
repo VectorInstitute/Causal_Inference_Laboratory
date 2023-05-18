@@ -110,8 +110,8 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2", dataset_n
         te = msd_one(crf_te, idx)
         ett = msd_one(crf_te, id0)
         ctfse = msd_three(crf_te, id0, -y, id1, y, id0)
-    expse_x0 = tv 
-    expse_x1 = tv
+        expse_x0 = tv 
+        expse_x1 = tv
 
     metrics["te"] = te
     metrics["ett"] = ett
