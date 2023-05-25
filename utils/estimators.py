@@ -285,6 +285,24 @@ def train_and_estimate_NN2(x, t, yf, x_test):
     return y0_in, y1_in, ate_in, y0_out, y1_out, ate_out
 
 
+def train_and_estimate_DML_helper(x_aux, x_new, t_aux, t_new, yf_aux, yf_new):
+    # use auxiliary data to fit t from x and y from x
+    LR = LogisticRegression()
+    LR.fit(x_aux, t_aux)
+
+    LS = Ridge()
+    LS.fit(x_aux, yf_aux)
+
+    # get residuals 
+    t_r = t_new - LR.predict_proba(x_new)[:, 1]
+    y_r = yf_new - LS.predict(x_new)
+
+    OLS = LinearRegression()
+    OLS.fit(t_r.reshape(-1, 1), y_r)  # single feature
+
+    ate_in, ate_out = OLS.coef_.item(), OLS.coef_.item()
+    return ate_in, ate_out
+
 def train_and_estimate_DML(x, t, yf, x_test):
     """
     Training using double machine learning (DML), i.e., R-Learner.
@@ -298,29 +316,15 @@ def train_and_estimate_DML(x, t, yf, x_test):
         x, t, yf, test_size=0.5, shuffle=False
     )
 
-    LR = LogisticRegression()
-    LR.fit(x_aux, t_aux)
+    ate_in_1, ate_out_1 = train_and_estimate_DML_helper(
+        x_aux, x_new, t_aux, t_new, yf_aux, yf_new)
+    ate_in_2, ate_out_2 = train_and_estimate_DML_helper(
+        x_new, x_aux, t_new, t_aux, yf_new, yf_aux)
 
-    LS = Ridge()
-    LS.fit(x_aux, yf_aux)
-
-    # get residuals
-    t_r = t_new - LR.predict_proba(x_new)[:, 1]
-    y_r = yf_new - LS.predict(x_new)
-
-    OLS = LinearRegression()
-    OLS.fit(t_r.reshape(-1, 1), y_r)  # single feature
-
-    y_new_predict = OLS.predict(t_r.reshape(-1, 1)) + LS.predict(x_new)
-    mask = t_new == 0
-    t_new_0 = np.arange(len(t_new))[mask]
-    t_new_1 = np.arange(len(t_new))[~mask]
-
-    ate_in = np.mean(y_new_predict[t_new_1]) - np.mean(y_new_predict[t_new_0])
+    ate_in, ate_out = (ate_in_1+ate_in_2)/2.0, (ate_out_1+ate_out_2)/2.0
 
     y0_in, y1_in = None, None
     y0_out, y1_out = None, None
-    ate_out = None
     return y0_in, y1_in, ate_in, y0_out, y1_out, ate_out
 
 
