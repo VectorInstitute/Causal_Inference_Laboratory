@@ -37,11 +37,14 @@ def make_numeric(data, data_name):
         data[:, 7] = np.array([0.0 if data[i, 7] == "F" else 1.0 for i in range(num_sample)])
         pd.DataFrame(data).to_csv("data/CFA/compas_numeric.csv")
 
-def load_data(data_addr):
+def load_data(data_addr, max_num_samples=20000):
     df = pd.read_csv(data_addr)
     df.drop(columns=df.columns[0], axis=1, inplace=True)
     data = df.to_numpy()
-    # data = data[:1000, :]
+    num_samples = min(max_num_samples, data.shape[0])
+    data = data[0:num_samples,:]
+    print("Number of loaded samples: ", num_samples)
+    print("Shape of loaded data:", data.shape)
     return data
 
 def plot_confidence_intervals(metrics, z=1.96, plot_name="fairness_metrics", plot_dir="fairness/plots/", save_plot=True):
@@ -79,9 +82,13 @@ def plot_confidence_intervals(metrics, z=1.96, plot_name="fairness_metrics", plo
 if __name__ == "__main__":
 
     # data_name = "200obs"
-    data_name = "berkeley"
-    # data_name = "compas"
     # data_name = "census"
+    # data_name = "compas"
+    data_name = "census"
+    # data_name = "synthetic1"
+    # data_name = "synthetic2"
+    # data_name = "synthetic3"
+
 
     # if data_name == "census":
     #     data_addr = "data/CFA/gov_census.csv"
@@ -100,6 +107,13 @@ if __name__ == "__main__":
         data_addr = "data/CFA/berkeley_numeric.csv"
     elif data_name == "compas":
         data_addr = "data/CFA/compas_numeric.csv"
+    elif data_name == "synthetic1":
+        # data_addr = "/Users/farnazkohankhaki/Documents/Causal Inference/test-generics .csv"
+        data_addr = "/Users/farnazkohankhaki/Documents/Causal Inference/test-synthetic-1000-1.csv"
+    elif data_name == "synthetic2":
+        data_addr = "/Users/farnazkohankhaki/Documents/Causal Inference/test-synthetic-1000-2.csv"
+    elif data_name == "synthetic3":
+        data_addr = "/Users/farnazkohankhaki/Documents/Causal Inference/test-synthetic-1000-3.csv"
 
     data = load_data(data_addr)
     
@@ -113,8 +127,8 @@ if __name__ == "__main__":
     elif data_name == "census":
         X = [0]
         Y = [11]
-        W = [1, 2, 3, 4, 5, 16]
-        Z = [6, 7, 8, 9, 10, 12, 13, 14, 15]
+        Z = [1, 2, 3, 4, 5, 16]
+        W = [6, 7, 8, 9, 10, 12, 13, 14, 15]
         x0 = 0
         x1 = 1
     elif data_name == "berkeley":
@@ -131,15 +145,29 @@ if __name__ == "__main__":
         Z = [0, 1]
         x0 = 0
         x1 = 1 
+    elif data_name == "synthetic1":
+        X = [0]
+        Y = [4]
+        W = []
+        Z = [1, 2, 3]
+        x0 = 0
+        x1 = 1
+    elif data_name == "synthetic2" or data_name == "synthetic3":
+        X = [0]
+        Y = [7]
+        W = [4, 5, 6]
+        Z = [1, 2, 3]
+        x0 = 0
+        x1 = 1
 
-    estimator_name = "Dragonnet"
-    num_boot = 2
-    num_rows_2_sample = 200
+    estimator_name = "RF2"
+    num_boot = 100
+    num_rows_2_sample = data.shape[0]
 
     all_metrics = np.zeros((num_boot, 4))
     for i in range(num_boot):
         print("-" * 15 + " Run " + str(i) + " " + "-" * 15)
-        data_ck = data[np.random.choice(data.shape[0], num_rows_2_sample, replace=False)]
+        data_ck = data[np.random.choice(data.shape[0], num_rows_2_sample, replace=True)]
         metrics = fairness_cookbook(data_ck, X = X, Z = Z, Y = Y, W = W,
                                     x0 = x0, x1 = x1, estimator_name = estimator_name, dataset_name=data_name)
         all_metrics[i][0] = metrics["tv"]

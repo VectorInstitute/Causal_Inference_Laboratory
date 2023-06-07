@@ -86,7 +86,7 @@ def fairness_cookbook(data, X, Z, Y, W , x0, x1, estimator_name="RF2", dataset_n
     id0 = idx[(data[:, X][idx] == [x0])[:, 0]]
     id1 = idx[(data[:, X][idx] == [x1])[:, 0]]
 
-    data[:, Z + W], _ = normalize_data(data[:, Z + W])
+    # data[:, Z + W], _ = normalize_data(data[:, Z + W])
     
     y = data[:, Y]
     x = data[:, X]
