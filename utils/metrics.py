@@ -232,6 +232,9 @@ def calculate_tau_risk(ite_estimates, w, t, y):
                 
     match_estimates_ite= (2*t -1)*(y - cf_y) 
 
+    # print(ite_estimates)
+    # print(match_estimates_ite)
+
     tau_score= np.mean((ite_estimates - match_estimates_ite)**2)
     
     return tau_score
@@ -336,15 +339,6 @@ def calculate_tau_t_risk(ite_estimates, w, t, y, outcome_pred=[]):
     return tau_plugin_score
 
 def calculate_influence_risk(ite_estimates, w, t, y, outcome_pred=[], prop_prob=[], min_propensity=0):
-
-    # print inputs
-    # print("ite_estimates", ite_estimates.shape)
-    # print("w", w.shape)
-    # print("t", t.shape)
-    # print("y", y.shape)
-    # print("outcome_pred", outcome_pred)
-    # print("prop_prob", prop_prob)
-    # print("min_propensity", min_propensity)
     
     #TODO: Defining (t0, t1) assumes the treatment is binary  
     t0= t*0
@@ -397,6 +391,47 @@ def calculate_r_risk(ite_estimates, w, t, y, outcome_pred= [], treatment_prob=[]
     r_score= np.mean(( (y-mu) - ite_estimates*(t-treatment_prob)) ** 2)
 
     return r_score
+
+def calculate_abs_diff_ate(ate_estimate, outcome_pred=[]):
+    mu_0, mu_1= outcome_pred
+    ate_approx = np.mean(mu_1 - mu_0)
+    return np.abs(ate_approx - ate_estimate)
+
+# def calculate_abs_diff_ate_match(ate_estimate, ite_estimates, w, t, y):
+    t0= t*0
+    t1= t*0 + 1
+
+    data_size= w.shape[0]
+    num_realizations = 1
+    if len(t.shape) > 1:
+        num_realizations = t.shape[1]
+    data_size= data_size*num_realizations
+    t= np.reshape(t, (data_size))
+    y= np.reshape(y, (data_size))
+    ite_estimates= np.reshape(ite_estimates, (data_size))
+    
+    X0= w[t==0, :]
+    X1= w[t==1, :]
+    Y0= y[t==0]
+    Y1= y[t==1]    
+    
+    match_estimates_ite= np.zeros(data_size)
+    
+    cf_y=np.zeros(data_size)
+    for idx in range(data_size):
+        curr_x= w[idx]
+        curr_t= t[idx]
+        curr_y= y[idx]
+        #Approximating counterfactual by mathching
+        if curr_t == 1:
+            cf_y[idx] = nearest_observed_counterfactual(curr_x, X0, Y0) 
+        elif curr_t == 0:
+            cf_y[idx] = nearest_observed_counterfactual(curr_x, X1, Y1) 
+                
+    match_estimates_ite= (2*t -1)*(y - cf_y) 
+
+    ate_approx = np.mean(match_estimates_ite)
+    return np.abs(ate_approx - ate_estimate)
 
 def binary_classification_loss(concat_true, concat_pred):
     # concat_true: y, t,

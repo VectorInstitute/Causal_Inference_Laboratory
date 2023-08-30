@@ -15,17 +15,20 @@ datasets_folder = sys_config["datasets_folder"]
 seed = 0 # same seed as in nuisance_model_selection.py
 np.random.seed(seed)
 
-dataset_name = "IHDP-100" # optionas are "Jobs", "IHDP-100", "TWINS"
+dataset_name = "TWINS" # optionas are "Jobs", "IHDP-100", "TWINS", "census_e1", "census_e2
+
 estimator_set = [
     "OLS1",
-    "OLS2",
-    "NN1",
-    "NN2",
     "RF1",
+    "NN1",
+    "OLS2",
     "RF2",
-    "Dragonnet",
+    "NN2",
     "TARNet",
+    "Dragonnet",
+    "DML",
 ]
+
 metrics_set = [
     "MAE", 
     "PEHE", 
@@ -42,8 +45,9 @@ metrics_set = [
     "influence_score",
     "influence_clip_prop_score",
     "r_score",
+    "abs_diff_ate_t",
+    "abs_diff_ate_s"
 ]
-# metrics_set = ["PEHE"]
 
 if __name__ == "__main__":
     print(f'{" Evaluation ":-^79}')
@@ -69,9 +73,11 @@ if __name__ == "__main__":
         x_all, t_all, yf_all = helper.load_IHDP_observational(
             datasets_folder, dataset_name, details=False
         )
+        yf_all = helper.scale_y(yf_all)
         x_test_all, t_test_all, yf_test_all = helper.load_IHDP_out_of_sample(
             datasets_folder, dataset_name, details=False
         )
+        yf_test_all = helper.scale_y(yf_test_all)
     elif dataset_name == "TWINS":
         mu0_in, mu1_in, mu0_out, mu1_out = helper.load_TWINS_ground_truth(
             datasets_folder, dataset_name, details=False
@@ -85,6 +91,17 @@ if __name__ == "__main__":
             datasets_folder, dataset_name, details=False
         )
         mu0_in, mu1_in, mu0_out, mu1_out = helper.load_TWINS_ground_truth(
+            datasets_folder, dataset_name, details=False
+        )
+    elif "census" in dataset_name:
+        datasets_folder = os.path.join(datasets_folder, "CFA")
+        mu0_in, mu1_in, mu0_out, mu1_out = None, None, None, None
+        ate_in_gt = None
+        ate_out_gt = None
+        x_all, t_all, yf_all = helper.load_census_observational(
+            datasets_folder, dataset_name, details=False
+        )
+        x_test_all, t_test_all, yf_test_all = helper.load_census_out_of_sample(
             datasets_folder, dataset_name, details=False
         )
     
@@ -150,194 +167,217 @@ if __name__ == "__main__":
     outcome_r_pred_test = np.array(outcome_r_pred)
 
     for estimator_name in estimator_set:
-        estimation_result_folder = os.path.join(
-            results_folder, dataset_name, estimator_name
-        )
-        (
-            y0_in,
-            y1_in,
-            ate_in,
-            y0_out,
-            y1_out,
-            ate_out,
-        ) = helper.load_in_and_out_results(estimation_result_folder)
-
-        if dataset_name == "TWINS":
-            y0_in = y0_in.reshape((-1, 1))
-            y1_in = y1_in.reshape((-1, 1))
-            y0_out = y0_out.reshape((-1, 1))
-            y1_out = y1_out.reshape((-1, 1))
-            ate_in = ate_in.reshape((-1, 1))
-            ate_out = ate_out.reshape((-1, 1))
-           
         results_in[estimator_name] = {}
         results_out[estimator_name] = {}
+        for z in range(10):
+            estimation_result_folder = os.path.join(
+                results_folder, dataset_name+"_"+str(z+1), estimator_name
+            )
+            (
+                y0_in,
+                y1_in,
+                ate_in,
+                y0_out,
+                y1_out,
+                ate_out,
+            ) = helper.load_in_and_out_results(estimation_result_folder)
 
+            if dataset_name == "TWINS":
+                y0_in = y0_in.reshape((-1, 1))
+                y1_in = y1_in.reshape((-1, 1))
+                y0_out = y0_out.reshape((-1, 1))
+                y1_out = y1_out.reshape((-1, 1))
+                ate_in = ate_in.reshape((-1, 1))
+                ate_out = ate_out.reshape((-1, 1))
 
-        # process in sample data
-        ite_estimate_in = y1_in.reshape((-1, 1), order='F') - y0_in.reshape((-1, 1), order='F')
-        ite_estimate_eval = ite_estimate_in[indices_eval]
+            if estimator_name == "DML":
+                # create dummy y0_in and y1_in and y0_out and y1_out
+                y0_in = np.zeros((t_all.shape[0], 1))
+                y1_in = np.zeros((t_all.shape[0], 1))
+                y0_out = np.zeros((t_test_all.shape[0], 1))
+                y1_out = np.zeros((t_test_all.shape[0], 1))
 
-        # get number of nan values
-        num_nan = np.sum(np.isnan(ite_estimate_eval))
-
-        # get indices of non nan values
-        non_nan = ~np.isnan(ite_estimate_eval)
-        non_nan_inds = np.where(non_nan)[0]
-        ite_estimate_eval = ite_estimate_eval[non_nan_inds]
-        x_eval = np.take(x_eval_orig, non_nan_inds, axis=0)
-        t_eval = t_eval_orig[non_nan.squeeze()]
-        yf_eval = yf_eval_orig[non_nan.squeeze()]
-        
-        
-        prop_score = prop_score_orig[non_nan.squeeze()]
-        outcome_s_pred = np.transpose(np.transpose(outcome_s_pred_orig)[non_nan.squeeze()])
-        outcome_t_pred = np.transpose(np.transpose(outcome_t_pred_orig)[non_nan.squeeze()])
-        outcome_r_pred = outcome_r_pred_orig[non_nan.squeeze()]
-        prop_prob = prop_prob_orig[non_nan.squeeze()]
-
-        # process out of sample data
-        ite_estimate_out = y1_out.reshape((-1, 1), order='F') - y0_out.reshape((-1, 1), order='F')
-        ite_estimate_eval_out = ite_estimate_out
-
-        # get number of nan values
-        num_nan = np.sum(np.isnan(ite_estimate_eval_out))
-
-        # get indices of non nan values
-        non_nan = ~np.isnan(ite_estimate_eval_out)
-        non_nan_inds = np.where(non_nan)[0]
-        ite_estimate_eval_out = ite_estimate_eval_out[non_nan_inds]
-        x_eval_out = np.take(x_test_all, non_nan_inds, axis=0)
-        t_eval_out = t_test_all[non_nan.squeeze()]
-        yf_eval_out = yf_test_all[non_nan.squeeze()]
-
-        prop_score_out = prop_score_test[non_nan.squeeze()]
-        outcome_s_pred_out = np.transpose(np.transpose(outcome_s_pred_test)[non_nan.squeeze()])
-        outcome_t_pred_out = np.transpose(np.transpose(outcome_t_pred_test)[non_nan.squeeze()])
-        outcome_r_pred_out = outcome_r_pred_test[non_nan.squeeze()]
-        prop_prob_out = prop_prob_test[non_nan.squeeze()]
-
-        for metric in metrics_set:
-            metric_in = None
-            metric_out = None
             
-            if metric in ["MAE", "PEHE"]:
-                metric_in = metrics.calculate_metrics(
-                    y0_in, y1_in, ate_in, mu0_in, mu1_in, ate_in_gt, metric=metric
-                )
-                metric_out = metrics.calculate_metrics(
-                    y0_out, y1_out, ate_out, mu0_out, mu1_out, ate_out_gt, metric=metric
-                )
-            elif metric == "value_score":
-                metric_in = metrics.calculate_value_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, dataset_name=dataset_name, prop_score=prop_score
-                )
-                metric_out = metrics.calculate_value_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, dataset_name=dataset_name, prop_score=prop_score_out
-                )
-            elif metric == "value_dr_score":
-                metric_in = metrics.calculate_value_dr_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, dataset_name=dataset_name, prop_score=prop_score
-                )
-                metric_out = metrics.calculate_value_dr_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, dataset_name=dataset_name, prop_score=prop_score_out
-                )
-            elif metric == "value_dr_clip_prop_score":
-                metric_in = metrics.calculate_value_dr_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, dataset_name=dataset_name, prop_score=prop_score, min_propensity=0.1
-                )
-                metric_out = metrics.calculate_value_dr_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, dataset_name=dataset_name, prop_score=prop_score_out, min_propensity=0.1
-                )
-            elif metric == "tau_match_score":
-                metric_in = metrics.calculate_tau_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval
-                )
-                metric_out = metrics.calculate_tau_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out
-                )
-            elif metric == "tau_iptw_score":
-                metric_in = metrics.calculate_tau_iptw_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, prop_score=prop_score
-                )
-                metric_out = metrics.calculate_tau_iptw_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, prop_score=prop_score_out
-                )
-            elif metric == "tau_iptw_clip_prop_score":
-                metric_in = metrics.calculate_tau_iptw_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, prop_score=prop_score, min_propensity=0.1
-                )
-                metric_out = metrics.calculate_tau_iptw_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, prop_score=prop_score_out, min_propensity=0.1
-                )
-            elif metric == "tau_dr_score":
-                metric_in = metrics.calculate_tau_dr_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_score=prop_score
-                )
-                metric_out = metrics.calculate_tau_dr_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_score=prop_score_out
-                )
-            elif metric == "tau_dr_clip_prop_score":
-                metric_in = metrics.calculate_tau_dr_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_score=prop_score, min_propensity=0.1
-                )
-                metric_out = metrics.calculate_tau_dr_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_score=prop_score_out, min_propensity=0.1
-                )
-            elif metric == "tau_s_score":
-                metric_in = metrics.calculate_tau_s_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_s_pred
-                )
-                metric_out = metrics.calculate_tau_s_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_s_pred_out
-                )
-            elif metric == "tau_t_score":
-                metric_in = metrics.calculate_tau_t_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred
-                )
-                metric_out = metrics.calculate_tau_t_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out
-                )
-            elif metric == "influence_score":
-                metric_in = metrics.calculate_influence_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_prob=prop_prob
-                )
-                metric_out = metrics.calculate_influence_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_prob=prop_prob_out
-                )
-            elif metric == "influence_clip_prop_score":
-                metric_in = metrics.calculate_influence_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_prob=prop_prob, min_propensity=0.1
-                )
-                metric_out = metrics.calculate_influence_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_prob=prop_prob_out, min_propensity=0.1
-                )
-            elif metric == "r_score":
-                metric_in = metrics.calculate_r_risk(
-                    ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_r_pred, treatment_prob=prop_prob[:, 1]
-                )
-                metric_out = metrics.calculate_r_risk(
-                    ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_r_pred_out, treatment_prob=prop_prob_out[:, 1]
-                )
+            # process in sample data
+            ite_estimate_in = y1_in.reshape((-1, 1), order='F') - y0_in.reshape((-1, 1), order='F')
+            ite_estimate_eval = ite_estimate_in[indices_eval]
 
-            if metric_in is None:
-                results_in[estimator_name][metric] = {"mean": None}
-            else:
-                results_in[estimator_name][metric] = {
-                    "mean": np.mean(metric_in, where=(metric_in != 0)),
-                }
+            # get number of nan values
+            num_nan = np.sum(np.isnan(ite_estimate_eval))
 
-            if metric_out is None:
-                results_out[estimator_name][metric] = {"mean": None}
-            else:
-                results_out[estimator_name][metric] = {
-                    "mean": np.mean(metric_out, where=(metric_out != 0)),
-                }
+            # get indices of non nan values
+            non_nan = ~np.isnan(ite_estimate_eval)
+            non_nan_inds = np.where(non_nan)[0]
+            ite_estimate_eval = ite_estimate_eval[non_nan_inds]
+            x_eval = np.take(x_eval_orig, non_nan_inds, axis=0)
+            t_eval = t_eval_orig[non_nan.squeeze()]
+            yf_eval = yf_eval_orig[non_nan.squeeze()]
+            
+            
+            prop_score = prop_score_orig[non_nan.squeeze()]
+            outcome_s_pred = np.transpose(np.transpose(outcome_s_pred_orig)[non_nan.squeeze()])
+            outcome_t_pred = np.transpose(np.transpose(outcome_t_pred_orig)[non_nan.squeeze()])
+            outcome_r_pred = outcome_r_pred_orig[non_nan.squeeze()]
+            prop_prob = prop_prob_orig[non_nan.squeeze()]
+
+            # process out of sample data
+            ite_estimate_out = y1_out.reshape((-1, 1), order='F') - y0_out.reshape((-1, 1), order='F')
+            ite_estimate_eval_out = ite_estimate_out
+
+            # get number of nan values
+            num_nan = np.sum(np.isnan(ite_estimate_eval_out))
+
+            # get indices of non nan values
+            non_nan = ~np.isnan(ite_estimate_eval_out)
+            non_nan_inds = np.where(non_nan)[0]
+            ite_estimate_eval_out = ite_estimate_eval_out[non_nan_inds]
+            x_eval_out = np.take(x_test_all, non_nan_inds, axis=0)
+            t_eval_out = t_test_all[non_nan.squeeze()]
+            yf_eval_out = yf_test_all[non_nan.squeeze()]
+
+            prop_score_out = prop_score_test[non_nan.squeeze()]
+            outcome_s_pred_out = np.transpose(np.transpose(outcome_s_pred_test)[non_nan.squeeze()])
+            outcome_t_pred_out = np.transpose(np.transpose(outcome_t_pred_test)[non_nan.squeeze()])
+            outcome_r_pred_out = outcome_r_pred_test[non_nan.squeeze()]
+            prop_prob_out = prop_prob_test[non_nan.squeeze()]
+
+            # print("Number of nan values in ITE estimate: ", num_nan)
+            # print("Number of non nan values in ITE estimate: ", len(non_nan_inds))
+
+            for metric in metrics_set:
+                metric_in = None
+                metric_out = None
+
+                if metric == "MAE" and estimator_name == "DML":
+                    metric_in = np.abs(ate_in_gt - ate_in)
+                    metric_out = np.abs(ate_out_gt - ate_out)                
+                elif metric in ["MAE", "PEHE"]:
+                    metric_in = metrics.calculate_metrics(
+                        y0_in, y1_in, ate_in, mu0_in, mu1_in, ate_in_gt, metric=metric
+                    )
+                    metric_out = metrics.calculate_metrics(
+                        y0_out, y1_out, ate_out, mu0_out, mu1_out, ate_out_gt, metric=metric
+                    )
+                elif metric == "value_score":
+                    metric_in = metrics.calculate_value_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, dataset_name=dataset_name, prop_score=prop_score
+                    )
+                    metric_out = metrics.calculate_value_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, dataset_name=dataset_name, prop_score=prop_score_out
+                    )
+                elif metric == "value_dr_score":
+                    metric_in = metrics.calculate_value_dr_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, dataset_name=dataset_name, prop_score=prop_score
+                    )
+                    metric_out = metrics.calculate_value_dr_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, dataset_name=dataset_name, prop_score=prop_score_out
+                    )
+                elif metric == "value_dr_clip_prop_score":
+                    metric_in = metrics.calculate_value_dr_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, dataset_name=dataset_name, prop_score=prop_score, min_propensity=0.1
+                    )
+                    metric_out = metrics.calculate_value_dr_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, dataset_name=dataset_name, prop_score=prop_score_out, min_propensity=0.1
+                    )
+                elif metric == "tau_match_score":
+                    metric_in = metrics.calculate_tau_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval
+                    )
+                    metric_out = metrics.calculate_tau_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out
+                    )
+                elif metric == "tau_iptw_score":
+                    metric_in = metrics.calculate_tau_iptw_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, prop_score=prop_score
+                    )
+                    metric_out = metrics.calculate_tau_iptw_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, prop_score=prop_score_out
+                    )
+                elif metric == "tau_iptw_clip_prop_score":
+                    metric_in = metrics.calculate_tau_iptw_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, prop_score=prop_score, min_propensity=0.1
+                    )
+                    metric_out = metrics.calculate_tau_iptw_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, prop_score=prop_score_out, min_propensity=0.1
+                    )
+                elif metric == "tau_dr_score":
+                    metric_in = metrics.calculate_tau_dr_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_score=prop_score
+                    )
+                    metric_out = metrics.calculate_tau_dr_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_score=prop_score_out
+                    )
+                elif metric == "tau_dr_clip_prop_score":
+                    metric_in = metrics.calculate_tau_dr_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_score=prop_score, min_propensity=0.1
+                    )
+                    metric_out = metrics.calculate_tau_dr_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_score=prop_score_out, min_propensity=0.1
+                    )
+                elif metric == "tau_s_score":
+                    metric_in = metrics.calculate_tau_s_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_s_pred
+                    )
+                    metric_out = metrics.calculate_tau_s_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_s_pred_out
+                    )
+                elif metric == "tau_t_score":
+                    metric_in = metrics.calculate_tau_t_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred
+                    )
+                    metric_out = metrics.calculate_tau_t_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out
+                    )
+                elif metric == "influence_score":
+                    metric_in = metrics.calculate_influence_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_prob=prop_prob
+                    )
+                    metric_out = metrics.calculate_influence_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_prob=prop_prob_out
+                    )
+                elif metric == "influence_clip_prop_score":
+                    metric_in = metrics.calculate_influence_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_t_pred, prop_prob=prop_prob, min_propensity=0.1
+                    )
+                    metric_out = metrics.calculate_influence_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_t_pred_out, prop_prob=prop_prob_out, min_propensity=0.1
+                    )
+                elif metric == "r_score":
+                    metric_in = metrics.calculate_r_risk(
+                        ite_estimate_eval, x_eval, t_eval, yf_eval, outcome_pred=outcome_r_pred, treatment_prob=prop_prob[:, 1]
+                    )
+                    metric_out = metrics.calculate_r_risk(
+                        ite_estimate_eval_out, x_eval_out, t_eval_out, yf_eval_out, outcome_pred=outcome_r_pred_out, treatment_prob=prop_prob_out[:, 1]
+                    )
+                elif metric == "abs_diff_ate_t":
+                    metric_in = metrics.calculate_abs_diff_ate(
+                        ate_in, outcome_pred=outcome_t_pred
+                    )
+                    metric_out = metrics.calculate_abs_diff_ate(
+                        ate_out, outcome_pred=outcome_t_pred_out
+                    )
+                elif metric == "abs_diff_ate_s":
+                    metric_in = metrics.calculate_abs_diff_ate(
+                        ate_in, outcome_pred=outcome_s_pred
+                    )
+                    metric_out = metrics.calculate_abs_diff_ate(
+                        ate_out, outcome_pred=outcome_s_pred_out
+                    )
+
+                if metric not in results_in[estimator_name]:
+                    results_in[estimator_name][metric] = []
+                if metric_in is not None:
+                    results_in[estimator_name][metric] += [metric_in]
+
+                if metric not in results_out[estimator_name]:
+                    results_out[estimator_name][metric] = []
+                if metric_out is not None:
+                    results_out[estimator_name][metric] += [metric_out]
     print(f'{" In-sample results ":-^79}')
     for metric in metrics_set:
         for estimator_name in estimator_set:
-            print(metric, estimator_name, results_in[estimator_name][metric])
+            print(metric, estimator_name, "mean", np.mean(results_in[estimator_name][metric]), "std", np.std(results_in[estimator_name][metric]))
     print(f'{" Out-of-sample results ":-^79}')
     for metric in metrics_set:
         for estimator_name in estimator_set:
-            print(metric, estimator_name, results_out[estimator_name][metric])
+            print(metric, estimator_name, "mean", np.mean(results_out[estimator_name][metric]), "std", np.std(results_out[estimator_name][metric]))
