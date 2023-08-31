@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
 sys_config = {
     "datasets_folder": "./data",
@@ -17,6 +18,36 @@ def load_data_fa(data_addr):
 def load_berkeley(
         datasets_folder="./data//CFA",
         dataset_name="berkeley",
+        split="train",
+        details=False
+    ):
+    """
+    Load the Berkeley dataset with split training and test sets
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param split: train or test split
+    :param details: boolean value for whether showing the details
+    :return:
+    """
+    dataset_filename = f"{dataset_name}.{split}.npz"
+    data = None
+    try:
+        data = np.load(os.path.join(datasets_folder, dataset_filename))
+        if details:
+            print(f'{"":-^79}')
+            print(f"The details of the {split} split of {dataset_name} dataset:")
+            for k in data.keys():
+                print(k, data[k].shape, data[k].dtype)
+            print(f'{"":-^79}')
+    except FileNotFoundError:
+        print(f"Cannot find the file of the {split} split of {dataset_name}.")
+    except Exception:
+        print("Loading dataset failed.")
+    return data
+
+def load_census(
+        datasets_folder="./data//CFA",
+        dataset_name="census",
         split="train",
         details=False
     ):
@@ -163,8 +194,7 @@ def load_berkeley_observational(
     datasets_folder="./data/CFA", dataset_name="berkeley", details=False
 ):
     """
-    Load observational data (x, t, yf), i.e., train split of multiple
-    realizations (100 and 1000) of the IHDP dataset
+    Load observational data (x, t, yf), i.e., train split of the berkeley dataset
     :param datasets_folder: path to all datasets
     :param dataset_name: name of the dataset
     :param split: train or test split
@@ -172,6 +202,28 @@ def load_berkeley_observational(
     :return:
     """
     data = load_berkeley(
+        datasets_folder=datasets_folder,
+        dataset_name=dataset_name,
+        split="train",
+        details=details,
+    )
+    x = data["x"]
+    t = data["t"]
+    yf = data["yf"]
+    return x, t, yf
+
+def load_census_observational(
+    datasets_folder="./data/CFA", dataset_name="census", details=False
+):
+    """
+    Load observational data (x, t, yf, w), i.e., train split of the census dataset
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param split: train or test split
+    :param details: boolean value for whether to show the details or not
+    :return:
+    """
+    data = load_census(
         datasets_folder=datasets_folder,
         dataset_name=dataset_name,
         split="train",
@@ -254,13 +306,34 @@ def load_berkeley_out_of_sample(
     datasets_folder="./data/CFA", dataset_name="berkeley", details=False
 ):
     """
-    Load out-of-sample (x) data, i.e., test split of the berkeley dataset
+    Load out-of-sample (x, t, yf, w) data, i.e., test split of the berkeley dataset
     :param datasets_folder: path to all datasets
     :param dataset_name: name of the dataset
     :param details: boolean value for whether to show the details or not
     :return:
     """
     data = load_berkeley(
+        datasets_folder=datasets_folder,
+        dataset_name=dataset_name,
+        split="test",
+        details=details,
+    )
+    x_test = data["x"]
+    t_test = data["t"]
+    yf_test = data["yf"]
+    return x_test, t_test, yf_test
+
+def load_census_out_of_sample(
+    datasets_folder="./data/CFA", dataset_name="census", details=False
+):
+    """
+    Load out-of-sample (x, t, yf, w) data, i.e., test split of the census dataset
+    :param datasets_folder: path to all datasets
+    :param dataset_name: name of the dataset
+    :param details: boolean value for whether to show the details or not
+    :return:
+    """
+    data = load_census(
         datasets_folder=datasets_folder,
         dataset_name=dataset_name,
         split="test",
@@ -449,3 +522,8 @@ def load_in_and_out_results(estimation_result_folder):
         ate_out = np.load(f, allow_pickle=True)
 
     return y0_in, y1_in, ate_in, y0_out, y1_out, ate_out
+
+def scale_y(y_unscaled):
+    y_scaler = MinMaxScaler().fit(y_unscaled)  # from dragonnet code
+    y = y_scaler.transform(y_unscaled) # normalize y from original code
+    return y
