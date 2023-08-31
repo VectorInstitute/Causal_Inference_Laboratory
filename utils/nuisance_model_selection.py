@@ -196,6 +196,14 @@ elif dataset_name == "berkeley_e1" or dataset_name == "berkeley_e2" :
     x_test_all, t_test_all, yf_test_all = helper.load_berkeley_out_of_sample(
         datasets_folder_CFA, dataset_name, details=False
     )
+elif dataset_name == "census_e1" or dataset_name == "census_e2":
+    datasets_folder_CFA = os.path.join(datasets_folder, "CFA")
+    x_all, t_all, yf_all = helper.load_census_observational(
+        datasets_folder_CFA, dataset_name, details=False
+    )
+    x_test_all, t_test_all, yf_test_all = helper.load_census_out_of_sample(
+        datasets_folder_CFA, dataset_name, details=False
+    )
 
 # dataset_samples= sample_dataset(dataset_name, dataset_obj, seed=seed, case='eval')
 # eval_w, eval_t, eval_y, ate, ite= dataset_samples['w'], dataset_samples['t'], dataset_samples['y'], dataset_samples['ate'], dataset_samples['ite']
