@@ -313,7 +313,7 @@ def train_and_estimate_DML(x, t, yf, x_test):
     :return:
     """
     x_aux, x_new, t_aux, t_new, yf_aux, yf_new = train_test_split(
-        x, t, yf, test_size=0.5, shuffle=False
+        x, t, yf, test_size=0.5, shuffle=True
     )
 
     ate_in_1, ate_out_1 = train_and_estimate_DML_helper(
@@ -671,27 +671,31 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, dataset_name, tune_hpar
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 64,
             }
-        elif dataset_name == "census":
+        elif "census" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-12,
                 HP_REG_L2: 0.001,
                 HP_BATCH_SIZE: 16,
             } 
-        elif dataset_name == "compas":
+        elif "compas" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-5,
                 HP_REG_L2: 0.001,
                 HP_BATCH_SIZE: 16,
             } 
-        elif dataset_name == "berkeley":
+        elif "berkeley" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-5,
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 16,
             } 
-
-
-        print("hparams: ", hparams)
+        elif "adult" in dataset_name:
+            # note that this is not tuned on adult dataset
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 16,
+            } 
         
         # no hparam tuning, hard code the hyperparameters
         # values chosen here were based on hparam tuning on jobs dataset
@@ -729,24 +733,31 @@ def train_and_evaluate(x, t, yf, x_test, estimator_name, dataset_name, tune_hpar
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 64,
             }
-        elif dataset_name == "census":
+        elif "census" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-12,
                 HP_REG_L2: 0.001,
                 HP_BATCH_SIZE: 16,
             }         
-        elif dataset_name == "compas":
+        elif "compas" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-5,
                 HP_REG_L2: 0.001,
                 HP_BATCH_SIZE: 16,
             } 
-        elif dataset_name == "berkeley":
+        elif "berkeley" in dataset_name:
             hparams={
                 HP_LEARNING_RATE: 1e-5,
                 HP_REG_L2: 0.01,
                 HP_BATCH_SIZE: 16,
             } 
+        elif "adult" in dataset_name:
+            # note that this is not tuned on adult dataset
+            hparams={
+                HP_LEARNING_RATE: 1e-5,
+                HP_REG_L2: 0.01,
+                HP_BATCH_SIZE: 16,
+            }
 
         print("hparams: ", hparams)
 
